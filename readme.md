@@ -12,10 +12,7 @@ This Python script simplifies the process of starting a Minecraft server and mak
 
 2. Ensure Your ngrok Auth Token Is Set
 
-3. Run the script:
-   - On Windows, double-click `start.bat`.
-   - On Unix-based systems (Linux, macOS), execute `start.sh` in the terminal.
-   - Alternatively, you can run the script directly by executing `python app.py`.
+3. Run the script
 
 4. Use the GUI to configure your server:
    - Open the GUI by running the script, and you'll be prompted to select your server JAR file.
