@@ -43,7 +43,7 @@ def start_server(jar_file, ram):
     
     server_directory = os.path.dirname(jar_file)
     
-    minecraft_process = subprocess.Popen(['java', '-XX:+UseG1GC', f'-Xmx{ram}G', f'-Xms{ram}G', '-Dsun.rmi.dgc.server.gcInterval=2147483646', '-XX:+UnlockExperimentalVMOptions', '-XX:G1NewSizePercent=20', '-XX:G1ReservePercent=20', '-XX:MaxGCPauseMillis=50', '-XX:G1HeapRegionSize=32M', '-jar', jar_file, 'nogui'], cwd=server_directory)
+    minecraft_process = subprocess.Popen(['java', '-XX:+UseG1GC', f'-Xmx{ram}G', f'-Xms{ram}G', '-Dsun.rmi.dgc.server.gcInterval=2147483646', '-XX:+UnlockExperimentalVMOptions', '-XX:G1NewSizePercent=20', '-XX:G1ReservePercent=20', '-XX:MaxGCPauseMillis=50', '-XX:G1HeapRegionSize=32M', '-jar', jar_file], cwd=server_directory, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
 
     minecraft_process.wait()
     print("Server Exited")
