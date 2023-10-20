@@ -8,6 +8,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk, filedialog
 import os
+import atexit
 
 def start_ngrok():
     global ngrok_process
@@ -32,13 +33,14 @@ def copy(txt):
         cmd = 'echo ' + txt.strip() + ' | xclip'
     return subprocess.check_call(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-def start_server(jar_file, ram):
-    print("Starting ngrok...")
-    ngrok_process = start_ngrok()
+def start_server(jar_file, ram, ngrok):
+    if ngrok:
+        print("Starting ngrok...")
+        ngrok_process = start_ngrok()
 
-    ngrok_urls = get_ngrok_url()
-    copy(ngrok_urls[0])
-    print("Copied ngrok URL \"" + ngrok_urls[0] + "\" to Clipboard")
+        ngrok_urls = get_ngrok_url()
+        copy(ngrok_urls[0])
+        print("Copied ngrok URL \"" + ngrok_urls[0] + "\" to Clipboard")
 
     print("Starting Minecraft Server...")
     
@@ -49,11 +51,12 @@ def start_server(jar_file, ram):
     minecraft_process.wait()
     print("Server Exited")
 
-    print("Killing ngrok")
-    if platform.system() == "Windows":
-        subprocess.run(['taskkill', '/F', '/T', '/PID', str(ngrok_process.pid)], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    else:
-        subprocess.run(['kill', '-9', str(ngrok_process.pid)], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if ngrok:
+        print("Killing ngrok")
+        if platform.system() == "Windows":
+            subprocess.run(['taskkill', '/F', '/T', '/PID', str(ngrok_process.pid)], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        else:
+            subprocess.run(['kill', '-9', str(ngrok_process.pid)], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
     sys.exit()
 
@@ -66,22 +69,24 @@ def open_file_dialog():
 def execute_server_start():
     jar_file = jar_file_entry.get()
     ram = ram_entry.get()
+    ngrok = use_ngrok.get()
     root.withdraw()
-    start_server(jar_file, ram)
+    start_server(jar_file, ram, ngrok)
     
 def save_config():
     config_to_save = {
         "jar_file": jar_file_entry.get(),
-        "ram": ram_entry.get()
+        "ram": ram_entry.get(),
+        "ngrok": use_ngrok.get()
     }
     
-    file_path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
+    file_path = "config.json"
     if file_path:
         with open(file_path, "w") as config_file:
             json.dump(config_to_save, config_file)
 
 def load_config():
-    file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+    file_path = "config.json"
     if file_path:
         with open(file_path, "r") as config_file:
             loaded_config = json.load(config_file)
@@ -89,13 +94,20 @@ def load_config():
             ram_entry.delete(0, tk.END)
             jar_file_entry.insert(0, loaded_config["jar_file"])
             ram_entry.insert(0, loaded_config["ram"])
+            use_ngrok.set(loaded_config.get("ngrok", True))
 
+def on_closing():
+    save_config()
+    root.destroy()
 
 root = tk.Tk()
 root.iconbitmap("icon.ico")
 root.title("Minecraft Server Starter")
-root.geometry("200x245")
+root.geometry("200x195")
 root.resizable(False,False)
+
+use_ngrok = tk.BooleanVar()
+use_ngrok.set(True)
 
 style = ttk.Style()
 style.configure("TButton", padding=(10, 5))
@@ -113,13 +125,15 @@ ram_label.pack()
 ram_entry = ttk.Entry(root)
 ram_entry.pack()
 
+use_ngrok_checkbutton = ttk.Checkbutton(root, text="Use ngrok", variable=use_ngrok)
+use_ngrok_checkbutton.pack()
+
 start_button = ttk.Button(root, text="Start Server", command=execute_server_start)
 start_button.pack()
 
-save_button = ttk.Button(root, text="Save Config", command=save_config)
-load_button = ttk.Button(root, text="Load Config", command=load_config)
+atexit.register(save_config)
+load_config()
 
-save_button.pack()
-load_button.pack()
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 root.mainloop()
