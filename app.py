@@ -9,6 +9,15 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 import os
 import atexit
+import socket
+
+def get_local_ip():
+    try:
+        hostname = socket.gethostname()
+        local_ip = socket.gethostbyname(hostname)
+        return local_ip
+    except socket.gaierror:
+        return "Unable to determine local IP"
 
 def start_ngrok():
     global ngrok_process
@@ -41,12 +50,15 @@ def start_server(jar_file, ram, ngrok):
         ngrok_urls = get_ngrok_url()
         copy(ngrok_urls[0])
         print("Copied ngrok URL \"" + ngrok_urls[0] + "\" to Clipboard")
+    else:
+        copy(get_local_ip())
+        print("Copied Local IP Address to Clipboard")
 
     print("Starting Minecraft Server...")
     
     server_directory = os.path.dirname(jar_file)
     
-    minecraft_process = subprocess.Popen(['java', '-XX:+UseG1GC', f'-Xmx{ram}G', f'-Xms{ram}G', '-Dsun.rmi.dgc.server.gcInterval=2147483646', '-XX:+UnlockExperimentalVMOptions', '-XX:G1NewSizePercent=20', '-XX:G1ReservePercent=20', '-XX:MaxGCPauseMillis=50', '-XX:G1HeapRegionSize=32M', '-jar', jar_file], cwd=server_directory, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+    minecraft_process = subprocess.Popen(['java', '-XX:+UseG1GC', f'-Xmx{ram}M', f'-Xms{ram}M', '-Dsun.rmi.dgc.server.gcInterval=2147483646', '-XX:+UnlockExperimentalVMOptions', '-XX:G1NewSizePercent=20', '-XX:G1ReservePercent=20', '-XX:MaxGCPauseMillis=50', '-XX:G1HeapRegionSize=32M', '-jar', jar_file], cwd=server_directory, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
 
     minecraft_process.wait()
     print("Server Exited")
@@ -88,13 +100,16 @@ def save_config():
 def load_config():
     file_path = "config.json"
     if file_path:
-        with open(file_path, "r") as config_file:
-            loaded_config = json.load(config_file)
-            jar_file_entry.delete(0, tk.END)
-            ram_entry.delete(0, tk.END)
-            jar_file_entry.insert(0, loaded_config["jar_file"])
-            ram_entry.insert(0, loaded_config["ram"])
-            use_ngrok.set(loaded_config.get("ngrok", True))
+        try:
+            with open(file_path, "r") as config_file:
+                loaded_config = json.load(config_file)
+                jar_file_entry.delete(0, tk.END)
+                ram_entry.delete(0, tk.END)
+                jar_file_entry.insert(0, loaded_config["jar_file"])
+                ram_entry.insert(0, loaded_config["ram"])
+                use_ngrok.set(loaded_config.get("ngrok", True))
+        except FileNotFoundError:
+            save_config()
 
 def on_closing():
     save_config()
@@ -120,7 +135,7 @@ jar_file_entry.pack()
 browse_button = ttk.Button(root, text="Browse", command=open_file_dialog)
 browse_button.pack()
 
-ram_label = ttk.Label(root, text="RAM (GB):")
+ram_label = ttk.Label(root, text="RAM (MB):")
 ram_label.pack()
 ram_entry = ttk.Entry(root)
 ram_entry.pack()
