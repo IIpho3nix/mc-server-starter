@@ -131,7 +131,7 @@ root.geometry("200x195")
 root.resizable(False,False)
 
 use_ngrok = tk.BooleanVar()
-use_ngrok.set(True)
+use_ngrok.set(False)
 
 style = ttk.Style()
 style.configure("TButton", padding=(10, 5))
