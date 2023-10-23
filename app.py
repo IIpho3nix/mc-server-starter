@@ -11,6 +11,13 @@ import os
 import atexit
 import socket
 
+def check_and_create_eula(jar_file_directory):
+    eula_file_path = os.path.join(jar_file_directory, "eula.txt")
+
+    if not os.path.exists(eula_file_path):
+        with open(eula_file_path, "w") as eula_file:
+            eula_file.write("eula=true")
+
 def get_local_ip():
     try:
         hostname = socket.gethostname()
@@ -57,6 +64,8 @@ def start_server(jar_file, ram, ngrok):
     print("Starting Minecraft Server...")
     
     server_directory = os.path.dirname(jar_file)
+    
+    check_and_create_eula(server_directory)
     
     minecraft_process = subprocess.Popen(['java', '-XX:+UseG1GC', f'-Xmx{ram}M', f'-Xms{ram}M', '-Dsun.rmi.dgc.server.gcInterval=2147483646', '-XX:+UnlockExperimentalVMOptions', '-XX:G1NewSizePercent=20', '-XX:G1ReservePercent=20', '-XX:MaxGCPauseMillis=50', '-XX:G1HeapRegionSize=32M', '-jar', jar_file], cwd=server_directory, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
 
