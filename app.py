@@ -105,17 +105,28 @@ def open_file_dialog():
 def execute_server_start():
     jar_file = jar_file_entry.get()
     ram = ram_entry.get()
-    port = port_entry.get()
+    port = port_entry.get() or read_server_port_from_properties(jar_file)
     ngrok = use_ngrok.get()
     root.withdraw()
     start_server(jar_file, ram, port, ngrok)
+
+
+def read_server_port_from_properties(jar_file):
+    server_directory = os.path.dirname(jar_file)
+    properties_file_path = os.path.join(server_directory, "server.properties")
+    if os.path.exists(properties_file_path):
+        with open(properties_file_path, "r") as properties_file:
+            for line in properties_file:
+                if line.startswith("server-port="):
+                    return int(line.strip().split("=")[1])
+    return 25565
 
 
 def save_config():
     config_to_save = {
         "jar_file": jar_file_entry.get(),
         "ram": ram_entry.get(),
-        "port": port_entry.get() or 25565,
+        "port": port_entry.get(),
         "ngrok": use_ngrok.get()
     }
 
@@ -176,7 +187,6 @@ port_label = ttk.Label(root, text="Port:")
 port_label.pack()
 port_entry = ttk.Entry(root)
 port_entry.pack()
-port_entry.insert(0, "25565")
 
 use_ngrok_checkbutton = ttk.Checkbutton(
     root, text="Use ngrok", variable=use_ngrok)
