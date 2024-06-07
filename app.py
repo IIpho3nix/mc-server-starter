@@ -40,13 +40,16 @@ def start_ngrok(port):
     return ngrok_process
 
 
-def get_ngrok_url():
+def get_ngrok_url(port):
     with urllib.request.urlopen("http://localhost:4040/api/tunnels") as response:
         data = response.read()
     datajson = json.loads(data)
-    ngrok_urls = [tunnel['public_url'] for tunnel in datajson['tunnels']]
-    ngrok_urls = [url.replace("tcp://", "") for url in ngrok_urls]
-    return ngrok_urls
+    for tunnel in datajson['tunnels']:
+        public_url = tunnel['public_url']
+        port_info = tunnel['config']['addr']
+        if port_info.endswith(str(port)):
+            return public_url.replace("tcp://", "")
+    return None
 
 
 def copy(txt):
@@ -64,9 +67,9 @@ def start_server(jar_file, ram, port, ngrok):
         print("Starting ngrok...")
         ngrok_process = start_ngrok(port)
 
-        ngrok_urls = get_ngrok_url()
-        copy(ngrok_urls[0])
-        print("Copied ngrok URL \"" + ngrok_urls[0] + "\" to Clipboard")
+        ngrok_url = get_ngrok_url(port)
+        copy(ngrok_url)
+        print("Copied ngrok URL \"" + ngrok_url + "\" to Clipboard")
     else:
         copy(get_local_ip(port))
         print("Copied Local IP Address to Clipboard")
