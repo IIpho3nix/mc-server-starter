@@ -6,14 +6,123 @@ import urllib.request
 import json
 import sys
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, messagebox
 import os
 import atexit
 import socket
+import hashlib
+import threading
 
+def fetch_version_manifest():
+    try:
+        with urllib.request.urlopen("https://launchermeta.mojang.com/mc/game/version_manifest.json") as response:
+            manifest = json.load(response)
+        return manifest
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to fetch version manifest: {str(e)}")
+        return None
+
+def download_server_version(version_info, save_directory, progress_callback, done_callback):
+    try:
+        download_info_url = version_info["url"]
+        
+        with urllib.request.urlopen(download_info_url) as response:
+            download_info = json.load(response)
+            
+        version_url = download_info["downloads"]["server"]["url"]
+        version_sha1 = download_info["downloads"]["server"]["sha1"]
+
+        save_path = os.path.join(save_directory, "server.jar").replace("\\","/")
+
+        def report_hook(count, block_size, total_size):
+            progress = min(int(count * block_size * 100 / total_size), 100)
+            progress_callback(progress)
+
+        urllib.request.urlretrieve(version_url, save_path, reporthook=report_hook)
+
+        with open(save_path, "rb") as f:
+            sha1 = hashlib.sha1()
+            while True:
+                data = f.read(65536)
+                if not data:
+                    break
+                sha1.update(data)
+        
+        downloaded_sha1 = sha1.hexdigest()
+
+        if downloaded_sha1 != version_sha1:
+            messagebox.showerror("Error", f"SHA-1 hash mismatch for downloaded server jar!")
+            os.remove(save_path)
+            return None
+
+        done_callback(save_path)
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to download and verify server jar: {str(e)}")
+        return None
+
+def on_download_click():
+    global version_dropdown, download_progress, version_manifest, download_window
+
+    download_window = tk.Toplevel()
+    download_window.title("Download Minecraft Server")
+    download_window.iconbitmap("icon.ico")
+    download_window.geometry("200x120")
+    download_window.resizable(False, False)
+
+    version_manifest = fetch_version_manifest()
+
+    if not version_manifest:
+        download_window.destroy()
+        return
+
+    version_label = ttk.Label(download_window, text="Select Minecraft Version:")
+    version_label.pack()
+
+    version_dropdown = ttk.Combobox(download_window, values=[v["id"] for v in version_manifest["versions"]])
+    version_dropdown.pack()
+
+    download_button = ttk.Button(download_window, text="Download", command=on_download_version)
+    download_button.pack()
+
+    download_progress = ttk.Progressbar(download_window, orient="horizontal", length=180, mode="determinate")
+    download_progress.pack()
+
+def on_download_version():
+    global version_dropdown, download_progress, version_manifest, download_window
+
+    selected_version = version_dropdown.get()
+
+    for version_info in version_manifest["versions"]:
+        if version_info["id"] == selected_version:
+            version_selected = version_info
+            break
+    else:
+        messagebox.showerror("Error", "Selected version info not found!")
+        return
+
+    save_directory = filedialog.askdirectory()
+    if not save_directory:
+        return
+
+    download_progress["value"] = 0
+
+    def update_progress(progress):
+        download_progress["value"] = progress
+
+    def done_callback(save_path):
+        messagebox.showinfo("Download Complete", f"Server jar downloaded to {save_path}.")
+        jar_file_entry.delete(0, tk.END)
+        jar_file_entry.insert(0, save_path)
+        download_window.destroy()
+
+    download_thread = threading.Thread(target=download_server_version, args=(version_selected, save_directory, update_progress, done_callback))
+    download_thread.start()
+
+    messagebox.showinfo("Downloading", f"Downloading server jar for version {selected_version}. Please wait...")
 
 def check_and_create_eula(jar_file_directory):
-    eula_file_path = os.path.join(jar_file_directory, "eula.txt")
+    eula_file_path = os.path.join(jar_file_directory, "eula.txt").replace("\\","/")
 
     if not os.path.exists(eula_file_path):
         with open(eula_file_path, "w") as eula_file:
@@ -116,7 +225,7 @@ def execute_server_start():
 
 def read_server_port_from_properties(jar_file):
     server_directory = os.path.dirname(jar_file)
-    properties_file_path = os.path.join(server_directory, "server.properties")
+    properties_file_path = os.path.join(server_directory, "server.properties").replace("\\","/")
     if os.path.exists(properties_file_path):
         with open(properties_file_path, "r") as properties_file:
             for line in properties_file:
@@ -164,7 +273,7 @@ def on_closing():
 root = tk.Tk()
 root.iconbitmap("icon.ico")
 root.title("Minecraft Server Starter")
-root.geometry("200x245")
+root.geometry("200x285")
 root.resizable(False, False)
 
 use_ngrok = tk.BooleanVar()
@@ -180,6 +289,9 @@ jar_file_entry = ttk.Entry(root)
 jar_file_entry.pack()
 browse_button = ttk.Button(root, text="Browse", command=open_file_dialog)
 browse_button.pack()
+
+download_button = ttk.Button(root, text="Download", command=on_download_click)
+download_button.pack()
 
 ram_label = ttk.Label(root, text="RAM (MB):")
 ram_label.pack()
