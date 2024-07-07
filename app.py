@@ -13,6 +13,28 @@ import socket
 import hashlib
 import threading
 
+def check_java():
+    try:
+        result = subprocess.run(['java', '-version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("Java is installed:", result.stdout.strip())
+        else:
+            messagebox.showwarning("Java Not Found", "Java is not installed. Please install Java to run this program.")
+            sys.exit(1)
+    except FileNotFoundError:
+        messagebox.showwarning("Java Not Found", "Java is not installed. Please install Java to run this program.")
+        sys.exit(1)
+
+def check_ngrok():
+    try:
+        result = subprocess.run(['ngrok', 'version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            print("ngrok is installed:", result.stdout.strip())
+        else:
+            messagebox.showwarning("ngrok Not Found", "ngrok is not installed. Please install ngrok to use ngrok functionality.")
+    except FileNotFoundError:
+        messagebox.showwarning("ngrok Not Found", "ngrok is not installed. Please install ngrok to use ngrok functionality.")
+
 def fetch_version_manifest():
     try:
         with urllib.request.urlopen("https://launchermeta.mojang.com/mc/game/version_manifest.json") as response:
@@ -269,6 +291,9 @@ def on_closing():
     save_config()
     root.destroy()
 
+
+check_java()
+check_ngrok()
 
 root = tk.Tk()
 root.iconbitmap("icon.ico")
