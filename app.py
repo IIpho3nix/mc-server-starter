@@ -140,8 +140,7 @@ def download_server_version(version_info, save_directory, progress_callback, don
                 paper_info = fetch_paper_build_info(
                     version, fetch_paper_version_latest_build(version))
                 download_info = {}
-                download_info["url"] = f"https://papermc.io/api/v2/projects/paper/versions/{version}/builds/{
-                    fetch_paper_version_latest_build(version)}/downloads/{paper_info['downloads']['application']['name']}"
+                download_info["url"] = f"https://papermc.io/api/v2/projects/paper/versions/{version}/builds/{fetch_paper_version_latest_build(version)}/downloads/{paper_info['downloads']['application']['name']}"
                 download_info["sha256"] = paper_info["downloads"]["application"]["sha256"]
                 download_info["filename"] = paper_info["downloads"]["application"]["name"]
             elif version_info.startswith("Purpur "):
@@ -150,8 +149,7 @@ def download_server_version(version_info, save_directory, progress_callback, don
                 latest_build = fetch_purpur_version_latest_build(version)
                 purpur_info = fetch_purpur_build_info(version, latest_build)
                 download_info = {}
-                download_info["url"] = f"https://api.purpurmc.org/v2/purpur/{
-                    version}/{latest_build}/download"
+                download_info["url"] = f"https://api.purpurmc.org/v2/purpur/{version}/{latest_build}/download"
                 download_info["md5"] = purpur_info["md5"]
                 download_info["filename"] = "purpur-" + \
                     version + "-" + latest_build + ".jar"
@@ -299,8 +297,7 @@ def on_download_version():
                 break
 
         if not version_selected:
-            messagebox.showerror("Error", f"Version {
-                                 selected_version} not found in version manifest.")
+            messagebox.showerror("Error", f"Version {selected_version} not found in version manifest.")
             return
 
     save_directory = filedialog.askdirectory()
@@ -323,8 +320,7 @@ def on_download_version():
         version_selected, save_directory, update_progress, done_callback))
     download_thread.start()
 
-    messagebox.showinfo("Downloading", f"Downloading server jar for version {
-                        selected_version}. Please wait...")
+    messagebox.showinfo("Downloading", f"Downloading server jar for version {selected_version}. Please wait...")
 
 
 def check_and_create_eula(jar_file_directory):
